@@ -1,0 +1,56 @@
+# Copyright 2025 NVIDIA CORPORATION & AFFILIATES
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+#
+# SPDX-License-Identifier: Apache-2.0
+
+# Note: This Dockerfile produces a container image that can be used to run the spdk-csi controller only.
+# It is not suitable for running the spdk-csi node.
+
+FROM --platform=${BUILDPLATFORM} golang:1.25 AS builder
+ARG TARGETOS
+ARG TARGETARCH
+
+WORKDIR /workspace
+# Copy the Go Modules manifests
+COPY go.mod go.mod
+COPY go.sum go.sum
+# Cache deps before building and copying source so that we don't need to re-download as much
+# and so that source changes don't invalidate our downloaded layer
+RUN --mount=type=cache,target=/go/pkg/mod \
+    go mod download
+
+# Copy the go source
+COPY ./ ./
+
+ARG gcflags
+ARG ldflags
+RUN --mount=type=cache,target=/root/.cache/go-build \
+    --mount=type=cache,target=/go/pkg/mod \
+    CGO_ENABLED=0 GOOS=${TARGETOS} GOARCH=${TARGETARCH} \
+    go build -trimpath \
+    -ldflags="${ldflags}" \
+    -gcflags="${gcflags}" \
+    -o _out/spdkcsi ./cmd/
+
+# copy project sources into the container
+RUN mkdir __src && \
+    find . -not -path "./.git/*" -not -path "./.gocache/*" -not -path "./_out/*" \
+    -exec cp --parents \{\} __src/ \;
+
+
+FROM nvcr.io/nvidia/doca/dpf_containers:1.0.2-ubuntu22.04-distroless
+COPY --from=builder /workspace/_out/spdkcsi /usr/local/bin/
+COPY --from=builder /workspace/__src /src
+
+ENTRYPOINT ["/usr/local/bin/spdkcsi"]
