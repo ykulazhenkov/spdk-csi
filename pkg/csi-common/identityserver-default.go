@@ -27,6 +27,7 @@ import (
 )
 
 type DefaultIdentityServer struct {
+	csi.UnimplementedIdentityServer
 	Driver *CSIDriver
 }
 

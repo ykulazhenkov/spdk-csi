@@ -7,12 +7,14 @@ import (
 	"time"
 
 	. "github.com/onsi/gomega" //nolint
+
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/kubernetes/test/e2e/framework"
-	e2elog "k8s.io/kubernetes/test/e2e/framework/log"
+	e2ekubectl "k8s.io/kubernetes/test/e2e/framework/kubectl"
+	e2epod "k8s.io/kubernetes/test/e2e/framework/pod"
 )
 
 const (
@@ -49,24 +51,24 @@ var ctx = context.TODO()
 
 func deployConfigs(configMapData string) {
 	configMapData = "--from-literal=config.json=" + configMapData
-	_, err := framework.RunKubectl(nameSpace, "create", "configmap", "spdkcsi-cm", configMapData)
+	_, err := e2ekubectl.RunKubectl(nameSpace, "create", "configmap", "spdkcsi-cm", configMapData)
 	if err != nil {
-		e2elog.Logf("failed to create config map %s", err)
+		framework.Logf("failed to create config map %s", err)
 	}
-	_, err = framework.RunKubectl(nameSpace, "apply", "-f", secretPath)
+	_, err = e2ekubectl.RunKubectl(nameSpace, "apply", "-f", secretPath)
 	if err != nil {
-		e2elog.Logf("failed to create secret: %s", err)
+		framework.Logf("failed to create secret: %s", err)
 	}
 }
 
 func deleteConfigs() {
-	_, err := framework.RunKubectl(nameSpace, "delete", "configmap", "spdkcsi-cm")
+	_, err := e2ekubectl.RunKubectl(nameSpace, "delete", "configmap", "spdkcsi-cm")
 	if err != nil {
-		e2elog.Logf("failed to delete config map: %s", err)
+		framework.Logf("failed to delete config map: %s", err)
 	}
-	_, err = framework.RunKubectl(nameSpace, "delete", "-f", secretPath)
+	_, err = e2ekubectl.RunKubectl(nameSpace, "delete", "-f", secretPath)
 	if err != nil {
-		e2elog.Logf("failed to delete secret: %s", err)
+		framework.Logf("failed to delete secret: %s", err)
 	}
 }
 
@@ -82,9 +84,9 @@ var csiYamls = []string{
 
 func deployCsi() {
 	for _, yamlName := range csiYamls {
-		_, err := framework.RunKubectl(nameSpace, "apply", "-f", yamlName)
+		_, err := e2ekubectl.RunKubectl(nameSpace, "apply", "-f", yamlName)
 		if err != nil {
-			e2elog.Logf("failed to create %s: %s", yamlName, err)
+			framework.Logf("failed to create %s: %s", yamlName, err)
 		}
 	}
 }
@@ -94,135 +96,135 @@ func deleteCsi() {
 	// delete objects in reverse order
 	for i := range csiYamls {
 		yamlName := csiYamls[cnt-1-i]
-		_, err := framework.RunKubectl(nameSpace, "delete", "-f", yamlName)
+		_, err := e2ekubectl.RunKubectl(nameSpace, "delete", "-f", yamlName)
 		if err != nil {
-			e2elog.Logf("failed to delete %s: %s", yamlName, err)
+			framework.Logf("failed to delete %s: %s", yamlName, err)
 		}
 	}
 }
 
 func deployYaml(yamlName string) {
-	_, err := framework.RunKubectl(nameSpace, "apply", "-f", yamlName)
+	_, err := e2ekubectl.RunKubectl(nameSpace, "apply", "-f", yamlName)
 	if err != nil {
-		e2elog.Logf("failed to create %s: %s", yamlName, err)
+		framework.Logf("failed to create %s: %s", yamlName, err)
 	}
 }
 
 func deleteYaml(yamlName string) {
-	_, err := framework.RunKubectl(nameSpace, "delete", "-f", yamlName)
+	_, err := e2ekubectl.RunKubectl(nameSpace, "delete", "-f", yamlName)
 	if err != nil {
-		e2elog.Logf("failed to delete %s: %s", yamlName, err)
+		framework.Logf("failed to delete %s: %s", yamlName, err)
 	}
 }
 
 func deploySmaNvmfConfig() {
-	_, err := framework.RunKubectl(nameSpace, "apply", "-f", smaNvmfConfigPath)
+	_, err := e2ekubectl.RunKubectl(nameSpace, "apply", "-f", smaNvmfConfigPath)
 	if err != nil {
-		e2elog.Logf("failed to create Sma Nvmf configmap %s", err)
+		framework.Logf("failed to create Sma Nvmf configmap %s", err)
 	}
 }
 
 func deleteSmaNvmfConfig() {
-	_, err := framework.RunKubectl(nameSpace, "delete", "-f", smaNvmfConfigPath)
+	_, err := e2ekubectl.RunKubectl(nameSpace, "delete", "-f", smaNvmfConfigPath)
 	if err != nil {
-		e2elog.Logf("failed to delete Sma Nvmf configmap %s", err)
+		framework.Logf("failed to delete Sma Nvmf configmap %s", err)
 	}
 }
 
 func deploySmaNvmeConfig() {
-	_, err := framework.RunKubectl(nameSpace, "apply", "-f", smaNvmeConfigPath)
+	_, err := e2ekubectl.RunKubectl(nameSpace, "apply", "-f", smaNvmeConfigPath)
 	if err != nil {
-		e2elog.Logf("failed to create Sma Nvme configmap %s", err)
+		framework.Logf("failed to create Sma Nvme configmap %s", err)
 	}
 }
 
 func deleteSmaNvmeConfig() {
-	_, err := framework.RunKubectl(nameSpace, "delete", "-f", smaNvmeConfigPath)
+	_, err := e2ekubectl.RunKubectl(nameSpace, "delete", "-f", smaNvmeConfigPath)
 	if err != nil {
-		e2elog.Logf("failed to delete Sma Nvme configmap %s", err)
+		framework.Logf("failed to delete Sma Nvme configmap %s", err)
 	}
 }
 
 func deploySmaVirtioBlkConfig() {
-	_, err := framework.RunKubectl(nameSpace, "apply", "-f", smaVirtioBlkConfigPath)
+	_, err := e2ekubectl.RunKubectl(nameSpace, "apply", "-f", smaVirtioBlkConfigPath)
 	if err != nil {
-		e2elog.Logf("failed to create Sma VirtioBlk configmap %s", err)
+		framework.Logf("failed to create Sma VirtioBlk configmap %s", err)
 	}
 }
 
 func deleteSmaVirtioBlkConfig() {
-	_, err := framework.RunKubectl(nameSpace, "delete", "-f", smaVirtioBlkConfigPath)
+	_, err := e2ekubectl.RunKubectl(nameSpace, "delete", "-f", smaVirtioBlkConfigPath)
 	if err != nil {
-		e2elog.Logf("failed to delete Sma VirtioBlk configmap %s", err)
+		framework.Logf("failed to delete Sma VirtioBlk configmap %s", err)
 	}
 }
 
 func deployOpiNvmeConfig() {
-	_, err := framework.RunKubectl(nameSpace, "apply", "-f", opiNvmeConfigPath)
+	_, err := e2ekubectl.RunKubectl(nameSpace, "apply", "-f", opiNvmeConfigPath)
 	if err != nil {
-		e2elog.Logf("failed to create Opi Nvme configmap %s", err)
+		framework.Logf("failed to create Opi Nvme configmap %s", err)
 	}
 }
 
 func deleteOpiNvmeConfig() {
-	_, err := framework.RunKubectl(nameSpace, "delete", "-f", opiNvmeConfigPath)
+	_, err := e2ekubectl.RunKubectl(nameSpace, "delete", "-f", opiNvmeConfigPath)
 	if err != nil {
-		e2elog.Logf("failed to delete Opi Nvme configmap %s", err)
+		framework.Logf("failed to delete Opi Nvme configmap %s", err)
 	}
 }
 
 func deployOpiVirtioBlkConfig() {
-	_, err := framework.RunKubectl(nameSpace, "apply", "-f", opiVirtioBlkConfigPath)
+	_, err := e2ekubectl.RunKubectl(nameSpace, "apply", "-f", opiVirtioBlkConfigPath)
 	if err != nil {
-		e2elog.Logf("failed to create Opi VirtioBlk configmap %s", err)
+		framework.Logf("failed to create Opi VirtioBlk configmap %s", err)
 	}
 }
 
 func deleteOpiVirtioBlkConfig() {
-	_, err := framework.RunKubectl(nameSpace, "delete", "-f", opiVirtioBlkConfigPath)
+	_, err := e2ekubectl.RunKubectl(nameSpace, "delete", "-f", opiVirtioBlkConfigPath)
 	if err != nil {
-		e2elog.Logf("failed to delete Opi VirtioBlk configmap %s", err)
+		framework.Logf("failed to delete Opi VirtioBlk configmap %s", err)
 	}
 }
 
 func deployTestPod() {
-	_, err := framework.RunKubectl(nameSpace, "apply", "-f", testPodPath)
+	_, err := e2ekubectl.RunKubectl(nameSpace, "apply", "-f", testPodPath)
 	if err != nil {
-		e2elog.Logf("failed to create test pod: %s", err)
+		framework.Logf("failed to create test pod: %s", err)
 	}
 }
 
 func deleteTestPod() {
-	_, err := framework.RunKubectl(nameSpace, "delete", "-f", testPodPath)
+	_, err := e2ekubectl.RunKubectl(nameSpace, "delete", "-f", testPodPath)
 	if err != nil {
-		e2elog.Logf("failed to delete test pod: %s", err)
+		framework.Logf("failed to delete test pod: %s", err)
 	}
 }
 
 func deleteTestPodForce() {
-	_, err := framework.RunKubectl(nameSpace, "delete", "--force", "-f", testPodPath)
+	_, err := e2ekubectl.RunKubectl(nameSpace, "delete", "--force", "-f", testPodPath)
 	if err != nil {
-		e2elog.Logf("failed to delete test pod: %s", err)
+		framework.Logf("failed to delete test pod: %s", err)
 	}
 }
 
 func deleteTestPodWithTimeout(timeout time.Duration) error {
-	_, err := framework.NewKubectlCommand(nameSpace, "delete", "-f", testPodPath).
+	_, err := e2ekubectl.NewKubectlCommand(nameSpace, "delete", "-f", testPodPath).
 		WithTimeout(time.After(timeout)).Exec()
 	return err
 }
 
 func deployPVC() {
-	_, err := framework.RunKubectl(nameSpace, "apply", "-f", pvcPath)
+	_, err := e2ekubectl.RunKubectl(nameSpace, "apply", "-f", pvcPath)
 	if err != nil {
-		e2elog.Logf("failed to create pvc: %s", err)
+		framework.Logf("failed to create pvc: %s", err)
 	}
 }
 
 func deletePVC() {
-	_, err := framework.RunKubectl(nameSpace, "delete", "-f", pvcPath)
+	_, err := e2ekubectl.RunKubectl(nameSpace, "delete", "-f", pvcPath)
 	if err != nil {
-		e2elog.Logf("failed to delete pvc: %s", err)
+		framework.Logf("failed to delete pvc: %s", err)
 	}
 }
 
@@ -232,30 +234,30 @@ func deletePVCAndTestPod() {
 }
 
 func deployTestPodWithMultiPvcs() {
-	_, err := framework.RunKubectl(nameSpace, "apply", "-f", testPodWithMultiPvcsPath)
+	_, err := e2ekubectl.RunKubectl(nameSpace, "apply", "-f", testPodWithMultiPvcsPath)
 	if err != nil {
-		e2elog.Logf("failed to create test pod with multiple pvcs: %s", err)
+		framework.Logf("failed to create test pod with multiple pvcs: %s", err)
 	}
 }
 
 func deleteTestPodWithMultiPvcs() {
-	_, err := framework.RunKubectl(nameSpace, "delete", "-f", testPodWithMultiPvcsPath)
+	_, err := e2ekubectl.RunKubectl(nameSpace, "delete", "-f", testPodWithMultiPvcsPath)
 	if err != nil {
-		e2elog.Logf("failed to delete test pod with multiple pvcs: %s", err)
+		framework.Logf("failed to delete test pod with multiple pvcs: %s", err)
 	}
 }
 
 func deployMultiPvcs() {
-	_, err := framework.RunKubectl(nameSpace, "apply", "-f", multiPvcsPath)
+	_, err := e2ekubectl.RunKubectl(nameSpace, "apply", "-f", multiPvcsPath)
 	if err != nil {
-		e2elog.Logf("failed to create pvcs: %s", err)
+		framework.Logf("failed to create pvcs: %s", err)
 	}
 }
 
 func deleteMultiPvcs() {
-	_, err := framework.RunKubectl(nameSpace, "delete", "-f", multiPvcsPath)
+	_, err := e2ekubectl.RunKubectl(nameSpace, "delete", "-f", multiPvcsPath)
 	if err != nil {
-		e2elog.Logf("failed to delete pvcs: %s", err)
+		framework.Logf("failed to delete pvcs: %s", err)
 	}
 }
 
@@ -267,16 +269,16 @@ func deleteMultiPvcsAndTestPodWithMultiPvcs() {
 // rolloutNodeServer Use the delete corresponding pod to simulate a rollout. In this way, when the function returns,
 // the state of the NodeServer has definitely changed, which is convenient for subsequent state detection.
 func rolloutNodeServer() {
-	_, err := framework.RunKubectl(nameSpace, "delete", "pod", "-l", fmt.Sprintf("app=%s", nodeDsName))
+	_, err := e2ekubectl.RunKubectl(nameSpace, "delete", "pod", "-l", fmt.Sprintf("app=%s", nodeDsName))
 	if err != nil {
-		e2elog.Logf("failed to rollout node server: %s", err)
+		framework.Logf("failed to rollout node server: %s", err)
 	}
 }
 
 func rolloutControllerServer() {
-	_, err := framework.RunKubectl(nameSpace, "delete", "pod", "-l", fmt.Sprintf("app=%s", controllerStsName))
+	_, err := e2ekubectl.RunKubectl(nameSpace, "delete", "pod", "-l", fmt.Sprintf("app=%s", controllerStsName))
 	if err != nil {
-		e2elog.Logf("failed to rollout controller server: %s", err)
+		framework.Logf("failed to rollout controller server: %s", err)
 	}
 }
 
@@ -315,7 +317,7 @@ func waitForNodeServerReady(c kubernetes.Interface, timeout time.Duration) error
 }
 
 func verifyNodeServerLog(expLogList []string) error {
-	log, err := framework.RunKubectl(nameSpace, "logs", "-l", "app=spdkcsi-node", "-c", "spdkcsi-node", "--tail", "-1")
+	log, err := e2ekubectl.RunKubectl(nameSpace, "logs", "-l", "app=spdkcsi-node", "-c", "spdkcsi-node", "--tail", "-1")
 	if err != nil {
 		return fmt.Errorf("failed to obtain the log from node server: %w", err)
 	}
@@ -382,22 +384,22 @@ func waitForPvcGone(c kubernetes.Interface, pvcName string) error {
 
 func execCommandInPod(f *framework.Framework, c, ns string, opt *metav1.ListOptions) (stdOut, stdErr string) {
 	podPot := getCommandInPodOpts(f, c, ns, opt)
-	stdOut, stdErr, err := f.ExecWithOptions(podPot)
+	stdOut, stdErr, err := e2epod.ExecWithOptions(f, podPot)
 	if stdErr != "" {
-		e2elog.Logf("stdErr occurred: %v", stdErr)
+		framework.Logf("stdErr occurred: %v", stdErr)
 	}
 	Expect(err).ShouldNot(HaveOccurred())
 	return stdOut, stdErr
 }
 
-func getCommandInPodOpts(f *framework.Framework, c, ns string, opt *metav1.ListOptions) framework.ExecOptions {
+func getCommandInPodOpts(f *framework.Framework, c, ns string, opt *metav1.ListOptions) e2epod.ExecOptions {
 	cmd := []string{"/bin/sh", "-c", c}
-	podList, err := f.PodClientNS(ns).List(ctx, *opt)
+	podList, err := e2epod.PodClientNS(f, ns).List(ctx, *opt)
 	framework.ExpectNoError(err)
 	Expect(podList.Items).NotTo(BeNil())
 	Expect(err).ShouldNot(HaveOccurred())
 
-	return framework.ExecOptions{
+	return e2epod.ExecOptions{
 		Command:            cmd,
 		PodName:            podList.Items[0].Name,
 		Namespace:          ns,

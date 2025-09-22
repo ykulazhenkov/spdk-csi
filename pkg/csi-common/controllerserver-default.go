@@ -27,6 +27,7 @@ import (
 )
 
 type DefaultControllerServer struct {
+	csi.UnimplementedControllerServer
 	Driver *CSIDriver
 }
 
